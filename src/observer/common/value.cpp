@@ -128,6 +128,10 @@ void Value::set_data(char *data, int length)
       value_.bool_value_ = *(int *)data != 0;
       length_            = length;
     } break;
+    case AttrType::DATES: {
+      value_.int_value_ = *(int *)data;
+      length_           = length;
+    } break;
     default: {
       LOG_WARN("unknown data type: %d", attr_type_);
     } break;
@@ -149,12 +153,71 @@ void Value::set_float(float val)
   value_.float_value_ = val;
   length_             = sizeof(val);
 }
+
 void Value::set_boolean(bool val)
 {
   reset();
   attr_type_         = AttrType::BOOLEANS;
   value_.bool_value_ = val;
   length_            = sizeof(val);
+}
+
+void Value::set_date(int val)
+{
+  reset();
+  attr_type_        = AttrType::DATES;
+  value_.int_value_ = val;
+  length_           = sizeof(val);
+}
+
+bool Value::str_to_date(const char *str, int length, int &year, int &month, int &day) {
+  if (!str || length < 8) return false; // 最短形式 "YYYY-M-D" 为 8 个字符
+
+  year = month = day = 0;
+  int i = 0;
+
+  // 解析年份
+  for (; i < length && isdigit(str[i]); ++i) {
+      year = year * 10 + (str[i] - '0');
+  }
+  if (i == 0 || i >= length || str[i] != '-') return false;
+  ++i; // 跳过 '-'
+
+  // 解析月份
+  if (i >= length || !isdigit(str[i])) return false;
+  month = str[i] - '0';
+  ++i;
+  if (i < length && isdigit(str[i])) { // 两位月份
+      month = month * 10 + (str[i] - '0');
+      ++i;
+  }
+  if (i >= length || str[i] != '-') return false;
+  ++i; // 跳过 '-'
+
+  // 解析日期
+  if (i >= length || !isdigit(str[i])) return false;
+  day = str[i] - '0';
+  ++i;
+  if (i < length && isdigit(str[i])) { // 两位日期
+      day = day * 10 + (str[i] - '0');
+      ++i;
+  }
+
+  if (i != length) return false; // 不能有多余字符
+
+  return is_valid_date(year, month, day);
+}
+
+bool Value::is_valid_date(int year, int month, int day) {
+  if (month < 1 || month > 12 || day < 1) return false;
+  static const int days_in_month[] = { 31,28,31,30,31,30,31,31,30,31,30,31 };
+  int max_day = days_in_month[month - 1];
+  if (month == 2 && is_leap_year(year)) max_day = 29;
+  return day <= max_day;
+}
+
+bool Value::is_leap_year(int year) {
+  return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
 }
 
 void Value::set_string(const char *s, int len /*= 0*/)
@@ -205,6 +268,9 @@ void Value::set_value(const Value &value)
     } break;
     case AttrType::BOOLEANS: {
       set_boolean(value.get_boolean());
+    } break;
+    case AttrType::DATES: {
+      set_date(value.get_int());
     } break;
     default: {
       ASSERT(false, "got an invalid value type");

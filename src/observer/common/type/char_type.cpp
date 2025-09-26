@@ -29,6 +29,16 @@ RC CharType::set_value_from_str(Value &val, const string &data) const
 RC CharType::cast_to(const Value &val, AttrType type, Value &result) const
 {
   switch (type) {
+    case AttrType::DATES : {
+      // 字符串转化为DATE
+      int year, month, day;
+      bool is_valid_date = result.str_to_date(val.value_.pointer_value_, val.length(), year, month, day);
+      if (!is_valid_date) {
+        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+      }
+      int date_value = year * 10000 + month * 100 + day;
+      result.set_date(date_value);
+    } break;
     default: return RC::UNIMPLEMENTED;
   }
   return RC::SUCCESS;
@@ -38,6 +48,8 @@ int CharType::cast_cost(AttrType type)
 {
   if (type == AttrType::CHARS) {
     return 0;
+  } else if (type == AttrType::DATES) {
+    return 1;
   }
   return INT32_MAX;
 }
