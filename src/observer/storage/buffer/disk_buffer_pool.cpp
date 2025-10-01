@@ -311,6 +311,17 @@ RC DiskBufferPool::close_file()
   return RC::SUCCESS;
 }
 
+RC DiskBufferPool::drop_file()
+{
+  RC rc = RC::SUCCESS;
+  if (file_desc_ < 0) { 
+    return rc;
+  }
+  
+  bp_manager_.drop_file(file_name_.c_str());
+  return RC::SUCCESS;
+}
+
 RC DiskBufferPool::get_this_page(PageNum page_num, Frame **frame)
 {
   RC rc  = RC::SUCCESS;
@@ -835,6 +846,13 @@ RC BufferPoolManager::create_file(const char *file_name)
 
   close(fd);
   LOG_INFO("Successfully create %s.", file_name);
+  return RC::SUCCESS;
+}
+
+RC BufferPoolManager::drop_file(const char *file_name)
+{
+  close_file(file_name);
+  remove(file_name);
   return RC::SUCCESS;
 }
 

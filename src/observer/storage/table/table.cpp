@@ -125,6 +125,39 @@ RC Table::create(Db *db, int32_t table_id, const char *path, const char *name, c
   return rc;
 }
 
+RC Table::drop(const char *path, const char *base_dir)
+{
+  RC rc = RC::SUCCESS;
+  
+  // 删除文件
+  if (remove(path) != 0) {
+    LOG_ERROR("Failed to remove table meta file. filename=%s, errmsg=%s", path, strerror(errno));
+    return RC::INTERNAL;
+  }
+
+  string             data_file = table_data_file(base_dir, table_meta_.name());
+  BufferPoolManager &bpm       = db_->buffer_pool_manager();
+  rc                           = bpm.drop_file(data_file.c_str());
+
+  data_buffer_pool_ = nullptr;
+
+  if (record_handler_ != nullptr) {
+    delete record_handler_;
+    record_handler_ = nullptr;
+  }
+
+  for (auto &index : indexes_) {
+    RC rc = index->destroy();
+    if (rc != RC::SUCCESS) {
+        LOG_ERROR("Failed to destroy index");
+    }
+    delete index;
+  }
+  indexes_.clear();
+  
+  return rc;
+}
+
 RC Table::open(Db *db, const char *meta_file, const char *base_dir)
 {
   // 加载元数据文件

@@ -208,6 +208,7 @@ bool Value::str_to_date(const char *str, int length, int &year, int &month, int 
   return is_valid_date(year, month, day);
 }
 
+// 检验日期辅助函数
 bool Value::is_valid_date(int year, int month, int day) {
   if (month < 1 || month > 12 || day < 1) return false;
   static const int days_in_month[] = { 31,28,31,30,31,30,31,31,30,31,30,31 };
@@ -216,6 +217,7 @@ bool Value::is_valid_date(int year, int month, int day) {
   return day <= max_day;
 }
 
+// 检验日期辅助函数
 bool Value::is_leap_year(int year) {
   return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
 }
